@@ -1,0 +1,664 @@
+--- app/community-admin/page.tsx	2026-07-01 23:54:57.381257445 -0600
++++ app/community-admin/page.tsx	2026-07-01 23:52:37.632311440 -0600
+@@ -80,6 +80,14 @@
+   message: string;
+ } | null;
+ 
++type ConfirmationDialog = {
++  title: string;
++  message: string;
++  detail?: string;
++  confirmLabel: string;
++  onConfirm: () => Promise<void> | void;
++} | null;
++
+ const paginateItems = <T,>(
+   items: T[],
+   page: number,
+@@ -333,6 +341,9 @@
+   const [emailComposer, setEmailComposer] = useState<EmailComposer>(null);
+   const [emailMessage, setEmailMessage] = useState("");
+   const [featureMessage, setFeatureMessage] = useState("");
++  const [confirmationDialog, setConfirmationDialog] =
++    useState<ConfirmationDialog>(null);
++  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
+   const [communityEventPage, setCommunityEventPage] = useState(1);
+   const [rosterEventPage, setRosterEventPage] = useState(1);
+   const [signupRosterPages, setSignupRosterPages] = useState<
+@@ -571,6 +582,25 @@
+     );
+   };
+ 
++  const confirmReviewHours = (
++    id: string,
++    volunteerName: string,
++    decision: HourReviewDecision
++  ) => {
++    setConfirmationDialog({
++      title:
++        decision === "approved"
++          ? "Approve volunteer hours?"
++          : "Request changes?",
++      message:
++        decision === "approved"
++          ? `${volunteerName}'s submitted hours will be approved and moved to reviewed history.`
++          : `${volunteerName}'s submission will be marked as needing changes.`,
++      confirmLabel: decision === "approved" ? "Approve Hours" : "Request Changes",
++      onConfirm: () => reviewHours(id, volunteerName, decision),
++    });
++  };
++
+   const sendSignupDecisionEmail = async (
+     signup: EventSignup,
+     event: EventItem,
+@@ -642,6 +672,36 @@
+     }
+   };
+ 
++  const confirmSignupStatus = (
++    item: CommunitySignup,
++    action: "confirm" | "waitlist" | "decline"
++  ) => {
++    const actionCopy = {
++      confirm: {
++        title: "Promote volunteer?",
++        message: `${item.volunteerName} will be confirmed for ${item.event.title}.`,
++        detail: "The volunteer will receive the prototype confirmation notification.",
++        confirmLabel: "Promote",
++      },
++      waitlist: {
++        title: "Move volunteer to waitlist?",
++        message: `${item.volunteerName} will be moved from the confirmed roster to the waitlist for ${item.event.title}.`,
++        confirmLabel: "Move to Waitlist",
++      },
++      decline: {
++        title: "Deny this signup?",
++        message: `${item.volunteerName}'s signup for ${item.event.title} will be denied.`,
++        detail: "The volunteer will receive the prototype decline notification.",
++        confirmLabel: "Deny Signup",
++      },
++    }[action];
++
++    setConfirmationDialog({
++      ...actionCopy,
++      onConfirm: () => updateSignupStatus(item, action),
++    });
++  };
++
+   const requestHomepageFeature = async (event: ManagedEvent) => {
+     const status =
+       event.managementStatus === "draft" ? "draft" : "published";
+@@ -661,6 +721,29 @@
+     );
+   };
+ 
++  const confirmHomepageFeatureRequest = (event: ManagedEvent) => {
++    setConfirmationDialog({
++      title: "Request homepage feature?",
++      message: `${event.title} will be submitted to Master Admin for homepage feature approval.`,
++      detail: "The event stays published while the feature request is pending.",
++      confirmLabel: "Request Feature",
++      onConfirm: () => requestHomepageFeature(event),
++    });
++  };
++
++  const runConfirmedAction = async () => {
++    if (!confirmationDialog) return;
++
++    setIsConfirmingAction(true);
++
++    try {
++      await confirmationDialog.onConfirm();
++      setConfirmationDialog(null);
++    } finally {
++      setIsConfirmingAction(false);
++    }
++  };
++
+   const getEmailRecipients = (
+     eventId: string,
+     audience: EmailAudience
+@@ -1168,7 +1251,9 @@
+ 
+                   {event.managementStatus === "published" &&
+                     !event.isFeatured && (
+-                      <button onClick={() => requestHomepageFeature(event)}>
++                      <button
++                        onClick={() => confirmHomepageFeatureRequest(event)}
++                      >
+                         Request Feature
+                       </button>
+                     )}
+@@ -1271,130 +1356,155 @@
+           </p>
+         )}
+ 
+-        <div className="capacityList">
+-          {paginatedRosterEvents.items.map((event) => {
+-            const registrations = signupsForEvent(event.id);
+-            const paginatedRegistrations = paginatedSignupsForEvent(event.id);
+-            const confirmedRegistrations = confirmedForEvent(event.id);
+-            const remaining = Math.max(
+-              event.needed - confirmedRegistrations.length,
+-              0
+-            );
+-
+-            return (
+-              <article className="capacityItem" key={event.id}>
+-                <div className="capacityHeading">
+-                  <div>
+-                    <h3>{event.title}</h3>
+-                    <p>
+-                      {event.date} · {event.time}
+-                    </p>
++        {communityEvents.length > 0 ? (
++          <div className="capacityList">
++            {paginatedRosterEvents.items.map((event) => {
++              const registrations = signupsForEvent(event.id);
++              const paginatedRegistrations = paginatedSignupsForEvent(event.id);
++              const confirmedRegistrations = confirmedForEvent(event.id);
++              const remaining = Math.max(
++                event.needed - confirmedRegistrations.length,
++                0
++              );
++
++              return (
++                <article className="capacityItem" key={event.id}>
++                  <div className="capacityHeading">
++                    <div>
++                      <h3>{event.title}</h3>
++                      <p>
++                        {event.date} · {event.time}
++                      </p>
++                    </div>
++                    <strong>
++                      {remaining} of {event.needed} spots remaining ·{" "}
++                      {waitlistedForEvent(event.id).length} waitlisted
++                    </strong>
+                   </div>
+-                  <strong>
+-                    {remaining} of {event.needed} spots remaining · {waitlistedForEvent(event.id).length} waitlisted
+-                  </strong>
+-                </div>
+ 
+-                <div
+-                  className="capacityTrack"
+-                  aria-label={`${confirmedRegistrations.length} of ${event.needed} volunteer spots filled`}
+-                >
+-                  <span
+-                    style={{
+-                      width: `${Math.min(
+-                        (confirmedRegistrations.length / event.needed) * 100,
+-                        100
+-                      )}%`,
+-                    }}
+-                  />
+-                </div>
+-
+-                <div className="emailActionRow">
+-                  <button
+-                    type="button"
+-                    onClick={() => openEmailComposer(event, "confirmed")}
++                  <div
++                    className="capacityTrack"
++                    aria-label={`${confirmedRegistrations.length} of ${event.needed} volunteer spots filled`}
+                   >
+-                    Email Confirmed
+-                  </button>
+-                  <button
+-                    type="button"
+-                    onClick={() => openEmailComposer(event, "waitlisted")}
+-                  >
+-                    Email Waitlist
+-                  </button>
+-                  <button
+-                    type="button"
+-                    onClick={() => openEmailComposer(event, "all")}
+-                  >
+-                    Email All Signups
+-                  </button>
+-                </div>
++                    <span
++                      style={{
++                        width: `${Math.min(
++                          (confirmedRegistrations.length / event.needed) * 100,
++                          100
++                        )}%`,
++                      }}
++                    />
++                  </div>
+ 
+-                {registrations.length > 0 ? (
+-                  <>
+-                    <div className="registrationList">
+-                      {paginatedRegistrations.items.map((registration) => (
+-                        <div className="registrationRow" key={registration.signup.id}>
+-                          <span>{registration.volunteerName}</span>
+-                          <span>{registration.signup.email}</span>
+-                          <span className={`statusPill ${registration.signup.status}`}>
+-                            {registration.signup.status.replaceAll("_", " ")}
+-                          </span>
+-                          <span className="rosterActions">
+-                            {registration.signup.status !== "confirmed" && (
+-                              <button
+-                                type="button"
+-                                onClick={() =>
+-                                  updateSignupStatus(registration, "confirm")
+-                                }
+-                              >
+-                                Promote
+-                              </button>
+-                            )}
+-                            {registration.signup.status === "confirmed" && (
+-                              <button
+-                                type="button"
+-                                onClick={() =>
+-                                  updateSignupStatus(registration, "waitlist")
+-                                }
+-                              >
+-                                Move to Waitlist
+-                              </button>
+-                            )}
+-                            {registration.signup.status !== "declined" &&
+-                              registration.signup.status !== "cancelled" && (
++                  <div className="emailActionRow">
++                    <button
++                      type="button"
++                      onClick={() => openEmailComposer(event, "confirmed")}
++                    >
++                      Email Confirmed
++                    </button>
++                    <button
++                      type="button"
++                      onClick={() => openEmailComposer(event, "waitlisted")}
++                    >
++                      Email Waitlist
++                    </button>
++                    <button
++                      type="button"
++                      onClick={() => openEmailComposer(event, "all")}
++                    >
++                      Email All Signups
++                    </button>
++                  </div>
++
++                  {registrations.length > 0 ? (
++                    <>
++                      <div className="registrationList">
++                        {paginatedRegistrations.items.map((registration) => (
++                          <div
++                            className="registrationRow"
++                            key={registration.signup.id}
++                          >
++                            <span>{registration.volunteerName}</span>
++                            <span>{registration.signup.email}</span>
++                            <span
++                              className={`statusPill ${registration.signup.status}`}
++                            >
++                              {registration.signup.status.replaceAll("_", " ")}
++                            </span>
++                            <span className="rosterActions">
++                              {registration.signup.status !== "confirmed" && (
+                                 <button
+                                   type="button"
+-                                  className="dangerTextButton"
+                                   onClick={() =>
+-                                    updateSignupStatus(registration, "decline")
++                                    confirmSignupStatus(registration, "confirm")
+                                   }
+                                 >
+-                                  Deny
++                                  Promote
+                                 </button>
+                               )}
+-                          </span>
+-                        </div>
+-                      ))}
++                              {registration.signup.status === "confirmed" && (
++                                <button
++                                  type="button"
++                                  onClick={() =>
++                                    confirmSignupStatus(registration, "waitlist")
++                                  }
++                                >
++                                  Move to Waitlist
++                                </button>
++                              )}
++                              {registration.signup.status !== "declined" &&
++                                registration.signup.status !== "cancelled" && (
++                                  <button
++                                    type="button"
++                                    className="dangerTextButton"
++                                    onClick={() =>
++                                      confirmSignupStatus(
++                                        registration,
++                                        "decline"
++                                      )
++                                    }
++                                  >
++                                    Deny
++                                  </button>
++                                )}
++                            </span>
++                          </div>
++                        ))}
++                      </div>
++                      <PaginationControls
++                        label={`${event.title} signup roster`}
++                        page={paginatedRegistrations.safePage}
++                        pageSize={SIGNUP_ROSTER_PAGE_SIZE}
++                        totalItems={paginatedRegistrations.totalItems}
++                        totalPages={paginatedRegistrations.totalPages}
++                        onPageChange={(page) =>
++                          setSignupRosterPage(event.id, page)
++                        }
++                      />
++                    </>
++                  ) : (
++                    <div className="emptyState compactEmptyState">
++                      <h3>No volunteer signups yet</h3>
++                      <p>
++                        New requests for this event will appear here with roster
++                        actions.
++                      </p>
+                     </div>
+-                    <PaginationControls
+-                      label={`${event.title} signup roster`}
+-                      page={paginatedRegistrations.safePage}
+-                      pageSize={SIGNUP_ROSTER_PAGE_SIZE}
+-                      totalItems={paginatedRegistrations.totalItems}
+-                      totalPages={paginatedRegistrations.totalPages}
+-                      onPageChange={(page) =>
+-                        setSignupRosterPage(event.id, page)
+-                      }
+-                    />
+-                  </>
+-                ) : (
+-                  <p className="muted">No volunteer signups yet.</p>
+-                )}
+-              </article>
+-            );
+-          })}
+-        </div>
++                  )}
++                </article>
++              );
++            })}
++          </div>
++        ) : (
++          <div className="emptyState">
++            <h3>No events to manage yet</h3>
++            <p>
++              Create or publish an event first, then roster and capacity details
++              will appear here.
++            </p>
++          </div>
++        )}
+         <PaginationControls
+           label="Roster events"
+           page={paginatedRosterEvents.safePage}
+@@ -1456,7 +1566,7 @@
+                       <button
+                         className="primaryButton"
+                         onClick={() =>
+-                          reviewHours(
++                          confirmReviewHours(
+                             submission.id,
+                             submission.volunteerName,
+                             "approved"
+@@ -1468,7 +1578,7 @@
+                       <button
+                         className="quietButton"
+                         onClick={() =>
+-                          reviewHours(
++                          confirmReviewHours(
+                             submission.id,
+                             submission.volunteerName,
+                             "needs_changes"
+@@ -1537,7 +1647,10 @@
+               />
+             </>
+           ) : (
+-            <p className="muted">Reviewed standard hour decisions will appear here.</p>
++            <div className="emptyState compactEmptyState">
++              <h3>No reviewed standard hours yet</h3>
++              <p>Approved and change-request decisions will appear here.</p>
++            </div>
+           )}
+         </div>
+       </section>
+@@ -1611,13 +1724,31 @@
+           </div>
+         </article>
+ 
+-        <BlockedUsersPanel
+-          profileId={admin.id}
+-          profileRole="community_admin"
+-        />
++      <BlockedUsersPanel
++        profileId={admin.id}
++        profileRole="community_admin"
++      />
+       </section>
+ 
+       <PreviewModal
++        open={Boolean(confirmationDialog)}
++        title={confirmationDialog?.title ?? "Confirm action"}
++        confirmLabel={confirmationDialog?.confirmLabel ?? "Confirm"}
++        onClose={() => setConfirmationDialog(null)}
++        onConfirm={runConfirmedAction}
++        isSaving={isConfirmingAction}
++      >
++        {confirmationDialog && (
++          <div className="confirmationPreview">
++            <p>{confirmationDialog.message}</p>
++            {confirmationDialog.detail && (
++              <p className="confirmationDetail">{confirmationDialog.detail}</p>
++            )}
++          </div>
++        )}
++      </PreviewModal>
++
++      <PreviewModal
+         open={Boolean(emailComposer)}
+         title="Email event volunteers"
+         confirmLabel="Send Email"
+@@ -2339,11 +2470,23 @@
+           color: ${GREEN};
+         }
+ 
+-        .managementPreview > p {
++        .managementPreview > p,
++        .confirmationPreview > p {
+           color: #5e6f67;
+           line-height: 1.6;
+         }
+ 
++        .confirmationPreview > p:last-child {
++          margin-bottom: 0;
++        }
++
++        .confirmationDetail {
++          padding: 12px;
++          border-left: 4px solid ${GREEN};
++          border-radius: 10px;
++          background: #eef6f2;
++        }
++
+         .managementPreview fieldset {
+           margin-top: 18px;
+           padding: 14px;
+@@ -2491,6 +2634,11 @@
+           border-radius: 18px;
+         }
+ 
++        .compactEmptyState {
++          margin-top: 12px;
++          padding: 16px;
++        }
++
+         .emptyState p {
+           margin-bottom: 0;
+           color: #697771;
+--- app/components/MissingHoursReviewQueue.tsx	2026-07-01 23:54:57.373257850 -0600
++++ app/components/MissingHoursReviewQueue.tsx	2026-07-01 23:54:09.427671370 -0600
+@@ -2,6 +2,7 @@
+ 
+ import { useCallback, useEffect, useMemo, useState } from "react";
+ import { missingHoursRepository } from "../lib/missingHours";
++import PreviewModal from "./PreviewModal";
+ import type {
+   MissingHoursReport,
+   MissingHoursReportStatus,
+@@ -15,6 +16,19 @@
+   title?: string;
+ };
+ 
++type ConfirmationDialog = {
++  title: string;
++  message: string;
++  detail?: string;
++  confirmLabel: string;
++  onConfirm: () => void;
++} | null;
++
++type ReviewDecisionStatus = Extract<
++  MissingHoursReportStatus,
++  "approved" | "needs_changes" | "denied"
++>;
++
+ const EMERALD = "#0f3d2e";
+ const ACTIVE_REPORT_PAGE_SIZE = 3;
+ const REVIEWED_REPORT_PAGE_SIZE = 6;
+@@ -238,6 +252,8 @@
+   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+   const [activeReportPage, setActiveReportPage] = useState(1);
+   const [reviewedReportPage, setReviewedReportPage] = useState(1);
++  const [confirmationDialog, setConfirmationDialog] =
++    useState<ConfirmationDialog>(null);
+ 
+   const refreshReports = useCallback(() => {
+     setReports(missingHoursRepository.listForReviewer(reviewerType, reviewerId));
+@@ -294,6 +310,48 @@
+     refreshReports();
+   };
+ 
++  const confirmStatusUpdate = (
++    report: MissingHoursReport,
++    status: ReviewDecisionStatus
++  ) => {
++    const actionCopy = {
++      approved: {
++        title: "Approve missing hours?",
++        message: `${report.volunteerName}'s ${report.estimatedHours} hour${
++          report.estimatedHours === 1 ? "" : "s"
++        } for ${report.eventTitle} will be approved.`,
++        detail: "Any reviewer note will be saved with the report.",
++        confirmLabel: "Approve Hours",
++      },
++      needs_changes: {
++        title: "Request changes?",
++        message: `${report.volunteerName}'s report for ${report.eventTitle} will stay open and be marked as needing changes.`,
++        detail: "Use the reviewer note field to explain what needs to change.",
++        confirmLabel: "Request Changes",
++      },
++      denied: {
++        title: "Deny missing hours?",
++        message: `${report.volunteerName}'s report for ${report.eventTitle} will be denied.`,
++        detail: "Any reviewer note will be saved with the denied report.",
++        confirmLabel: "Deny Report",
++      },
++    }[status];
++
++    if (!actionCopy) return;
++
++    setConfirmationDialog({
++      ...actionCopy,
++      onConfirm: () => updateStatus(report.id, status),
++    });
++  };
++
++  const runConfirmedAction = () => {
++    if (!confirmationDialog) return;
++
++    confirmationDialog.onConfirm();
++    setConfirmationDialog(null);
++  };
++
+   return (
+     <section className="reviewPanel">
+       <div className="panelHeader">
+@@ -373,7 +431,7 @@
+                 <button
+                   type="button"
+                   className="approveButton"
+-                  onClick={() => updateStatus(report.id, "approved")}
++                  onClick={() => confirmStatusUpdate(report, "approved")}
+                 >
+                   Approve Hours
+                 </button>
+@@ -381,7 +439,7 @@
+                 <button
+                   type="button"
+                   className="changesButton"
+-                  onClick={() => updateStatus(report.id, "needs_changes")}
++                  onClick={() => confirmStatusUpdate(report, "needs_changes")}
+                 >
+                   Request Changes
+                 </button>
+@@ -389,7 +447,7 @@
+                 <button
+                   type="button"
+                   className="denyButton"
+-                  onClick={() => updateStatus(report.id, "denied")}
++                  onClick={() => confirmStatusUpdate(report, "denied")}
+                 >
+                   Deny
+                 </button>
+@@ -450,6 +508,23 @@
+         </details>
+       )}
+ 
++      <PreviewModal
++        open={Boolean(confirmationDialog)}
++        title={confirmationDialog?.title ?? "Confirm report decision"}
++        confirmLabel={confirmationDialog?.confirmLabel ?? "Confirm"}
++        onClose={() => setConfirmationDialog(null)}
++        onConfirm={runConfirmedAction}
++      >
++        {confirmationDialog && (
++          <div className="confirmationPreview">
++            <p>{confirmationDialog.message}</p>
++            {confirmationDialog.detail && (
++              <p className="confirmationDetail">{confirmationDialog.detail}</p>
++            )}
++          </div>
++        )}
++      </PreviewModal>
++
+       <style jsx>{`
+         .reviewPanel {
+           padding: 24px;
+@@ -487,6 +562,22 @@
+           line-height: 1.6;
+         }
+ 
++        .confirmationPreview > p {
++          color: #5e6f67;
++          line-height: 1.6;
++        }
++
++        .confirmationPreview > p:last-child {
++          margin-bottom: 0;
++        }
++
++        .confirmationDetail {
++          padding: 12px;
++          border-left: 4px solid ${EMERALD};
++          border-radius: 10px;
++          background: #eef6f2;
++        }
++
+         .queueCount {
+           min-width: 112px;
+           padding: 14px;

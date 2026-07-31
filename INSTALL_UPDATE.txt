@@ -1,0 +1,13 @@
+SONI WEBSITE V8 — TESTIMONIAL HEADING CLEANUP
+
+1. Stop the development server with Control + C.
+2. In Terminal, run:
+
+cd "$HOME/Downloads/soni-companion-website"
+unzip -o "$HOME/Downloads/soni-website-v8-testimonial-heading-cleanup.zip"
+npm run dev
+
+3. Refresh http://localhost:3000 with Command + Shift + R.
+
+This update removes the sample-testimonial explanatory paragraph and adjusts
+the testimonial heading layout so no empty second column remains.
