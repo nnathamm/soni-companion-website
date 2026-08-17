@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ContactPanel from "../components/ContactPanel";
 import { companionFeatures } from "@/lib/features";
+import PortalEntryLink from "../components/PortalEntryLink";
 
 export const metadata: Metadata = {
   title: "Connected companion platform",
@@ -20,7 +21,7 @@ export default function FeaturesPage() {
           <div className="platform-hero__intro">
             <p>Soni is being built to connect everyday conversation with memories, routines, family participation, and trusted screens—while keeping the senior in control.</p>
             <div className="button-row">
-              <Link className="button button--dark" href="/portal/login">Login</Link>
+              <PortalEntryLink className="button button--dark" />
               <Link className="product-link" href="/privacy">Read the privacy boundaries <span aria-hidden="true">›</span></Link>
             </div>
           </div>

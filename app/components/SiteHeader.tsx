@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import SoniMark from "./SoniMark";
+import PortalEntryLink from "./PortalEntryLink";
 
 const navigation = [
   { href: "/#mission", label: "Mission" },
@@ -53,9 +54,7 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <Link className="button button--small button--dark" href="/portal/login" onClick={() => setOpen(false)}>
-            Login
-          </Link>
+          <PortalEntryLink className="button button--small button--dark" onClick={() => setOpen(false)} />
         </nav>
       </div>
     </header>

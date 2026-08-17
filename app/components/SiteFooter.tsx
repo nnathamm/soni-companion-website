@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SoniMark from "./SoniMark";
+import PortalEntryLink from "./PortalEntryLink";
 
 const links = [
   ["Our mission", "/#mission"],
@@ -33,9 +34,9 @@ export default function SiteFooter() {
         </div>
         <div className="site-footer__links" aria-label="Footer navigation">
           {links.map(([label, href]) => (
-            <Link href={href} key={href}>
-              {label}
-            </Link>
+            href === "/portal/login"
+              ? <PortalEntryLink key={href} />
+              : <Link href={href} key={href}>{label}</Link>
           ))}
         </div>
       </div>

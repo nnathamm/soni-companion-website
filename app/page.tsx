@@ -3,6 +3,7 @@ import Link from "next/link";
 import ContactPanel from "./components/ContactPanel";
 import ConceptDisclaimer from "./components/ConceptDisclaimer";
 import { companionFeatures } from "@/lib/features";
+import PortalEntryLink from "./components/PortalEntryLink";
 
 const progression = [
   {
@@ -249,7 +250,7 @@ export default function Home() {
           <div className="home-platform__grid">
             {companionFeatures.slice(0, 3).map((feature, index) => <article key={feature.key}><span>0{index + 1}</span><p className="eyebrow">{feature.eyebrow}</p><h3>{feature.title}</h3><p>{feature.description}</p></article>)}
           </div>
-          <div className="home-platform__action"><Link className="button button--dark" href="/portal/login">Login</Link><p>Invite-only access · Senior-controlled permissions · No raw audio or transcripts</p></div>
+          <div className="home-platform__action"><PortalEntryLink className="button button--dark" /><p>Invite-only access · Senior-controlled permissions · No raw audio or transcripts</p></div>
         </div>
       </section>
 

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, databaseConfigured } from "./db";
 import { tokenHash } from "./security";
+import { AUTH_STATE_COOKIE_NAME } from "./auth-state";
 
 const SESSION_DAYS = 7;
 const COOKIE_NAME = process.env.NODE_ENV === "production" ? "__Host-soni_session" : "soni_session";
@@ -43,6 +44,13 @@ export async function createSession(userId: string) {
     path: "/",
     expires: expiresAt,
   });
+  cookieStore.set(AUTH_STATE_COOKIE_NAME, "1", {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt,
+  });
 }
 
 export async function destroySession() {
@@ -52,6 +60,7 @@ export async function destroySession() {
     await db()`DELETE FROM sessions WHERE token_hash = ${tokenHash(token)}`;
   }
   cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(AUTH_STATE_COOKIE_NAME);
 }
 
 export async function currentUser(): Promise<PortalUser | null> {
