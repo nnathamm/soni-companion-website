@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import SoniMark from "./SoniMark";
 
 const navigation = [
   { href: "/#mission", label: "Mission" },
   { href: "/#progression", label: "Build journey" },
   { href: "/research", label: "Research" },
+  { href: "/features", label: "Platform" },
   { href: "/privacy", label: "Privacy" },
   { href: "/about", label: "About" },
 ];
@@ -16,10 +17,6 @@ const navigation = [
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   return (
     <header className="site-header site-header--v4">
@@ -51,12 +48,13 @@ export default function SiteHeader() {
               key={item.href}
               href={item.href}
               className={pathname === item.href ? "site-nav__link is-active" : "site-nav__link"}
+              onClick={() => setOpen(false)}
             >
               {item.label}
             </Link>
           ))}
-          <Link className="button button--small button--dark" href="/contact">
-            Request a demo
+          <Link className="button button--small button--dark" href="/portal" onClick={() => setOpen(false)}>
+            Family portal
           </Link>
         </nav>
       </div>

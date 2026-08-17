@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import ContactPanel from "./components/ContactPanel";
 import ConceptDisclaimer from "./components/ConceptDisclaimer";
+import { companionFeatures } from "@/lib/features";
 
 const progression = [
   {
@@ -46,27 +47,18 @@ const principles = [
   },
 ];
 
-const testimonials = [
+const testimonialPerspectives = [
   {
-    name: "Margaret",
-    location: "Nashville, Tennessee",
-    title: "Beta tester",
-    quote:
-      "On days when the house felt especially quiet, talking with Soni gave me something positive to look forward to. I usually finished our conversations in a lighter mood, and I’m thankful for that little lift in my day.",
+    perspective: "Older adult perspective",
+    note: "Reserved for consented, de-identified feedback.",
   },
   {
-    name: "Robert",
-    location: "Murfreesboro, Tennessee",
-    title: "Beta tester",
-    quote:
-      "Soni helped break up the long stretches when I did not have anyone around to talk with. It did not replace a real visit, but it helped me feel less alone, and I’m grateful the project is being made for people who need that extra connection.",
+    perspective: "Family perspective",
+    note: "Reserved for consented, de-identified feedback.",
   },
   {
-    name: "Linda",
-    location: "Franklin, Tennessee",
-    title: "Beta tester",
-    quote:
-      "Having a calm conversation helped me settle down when I was feeling worried and gave me a reason to smile. I appreciated that Soni remembered what we had been discussing, and I’m thankful for how easy and comforting it felt to use.",
+    perspective: "Community perspective",
+    note: "Reserved for consented, de-identified feedback.",
   },
 ];
 
@@ -239,24 +231,35 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="home-platform section">
+        <div className="shell shell--wide">
+          <div className="soni-section-heading">
+            <div><p className="eyebrow">Beyond the conversation</p><h2>A connected companion platform, shaped around consent.</h2></div>
+            <div><p>Family memories, gentle activities, routine support, and long-term wellbeing patterns can help a senior’s care circle stay connected—without making hidden decisions about the person.</p><Link className="product-link" href="/features">Explore the platform <span aria-hidden="true">›</span></Link></div>
+          </div>
+          <div className="home-platform__grid">
+            {companionFeatures.slice(0, 3).map((feature, index) => <article key={feature.key}><span>0{index + 1}</span><p className="eyebrow">{feature.eyebrow}</p><h3>{feature.title}</h3><p>{feature.description}</p></article>)}
+          </div>
+          <div className="home-platform__action"><Link className="button button--dark" href="/portal">Open the private family portal</Link><p>Invite-only access · Senior-controlled permissions · No raw audio or transcripts</p></div>
+        </div>
+      </section>
+
       <section id="testimonials" className="soni-testimonials section">
         <div className="shell shell--wide">
           <div className="soni-testimonials__heading">
             <div>
-              <p className="eyebrow">Privacy-first testimonials</p>
-              <h2>Real experiences, shared with limited personal details.</h2>
+              <p className="eyebrow">Privacy-first stories</p>
+              <h2>Stories shared only with documented consent.</h2>
             </div>
           </div>
 
           <div className="soni-testimonials__grid">
-            {testimonials.map((testimonial) => (
-              <article className="soni-testimonial" key={`${testimonial.name}-${testimonial.location}`}>
-                <span className="soni-testimonial__mark" aria-hidden="true">“</span>
-                <p>{testimonial.quote}</p>
-                <footer>
-                  {testimonial.name} · {testimonial.location}
-                </footer>
-                <span className="soni-testimonial__status">{testimonial.title}</span>
+            {testimonialPerspectives.map((item) => (
+              <article className="soni-testimonial" key={item.perspective}>
+                <span className="soni-testimonial__mark" aria-hidden="true">•</span>
+                <p>{item.note}</p>
+                <footer>{item.perspective}</footer>
+                <span className="soni-testimonial__status">Consent required</span>
               </article>
             ))}
           </div>

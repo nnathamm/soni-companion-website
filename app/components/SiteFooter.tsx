@@ -7,6 +7,8 @@ const links = [
   ["Anonymous testimonials", "/#testimonials"],
   ["How it works", "/how-soni-works"],
   ["Research study", "/research"],
+  ["Connected platform", "/features"],
+  ["Family portal", "/portal"],
   ["For senior communities", "/communities"],
   ["Safety & privacy", "/privacy"],
   ["About the project", "/about"],

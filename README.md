@@ -49,6 +49,22 @@ npm run lint
 npm run build
 ```
 
+## Private family portal
+
+The public site now includes an invite-only Care Circle portal at `/portal`.
+It uses server-side PostgreSQL sessions and role checks; it does not use browser
+storage as the source of truth.
+
+1. Copy `.env.example` to `.env.local` and set both values.
+2. Run `npm run db:migrate`.
+3. Run `npm run db:create-setup-code`, then open `/portal/setup` and use its
+   single-use, 24-hour code to create the one and only initial administrator.
+4. Create member accounts and pseudonymous profiles from `/portal/admin`.
+
+Sensitive feature permissions begin off. Public self-registration is not
+available. Raw audio, transcripts, diagnostic scores, medication doses, and
+Home Assistant credentials are outside this portal's data model.
+
 ## Important preview limitation
 
 The Contact page form currently validates and displays a preview confirmation, but it does **not** send email yet. Connect it to the final email/form service before publishing.
