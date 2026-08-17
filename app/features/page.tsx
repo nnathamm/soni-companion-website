@@ -20,7 +20,7 @@ export default function FeaturesPage() {
           <div className="platform-hero__intro">
             <p>Soni is being built to connect everyday conversation with memories, routines, family participation, and trusted screens—while keeping the senior in control.</p>
             <div className="button-row">
-              <Link className="button button--dark" href="/portal">Open the family portal</Link>
+              <Link className="button button--dark" href="/portal/login">Login</Link>
               <Link className="product-link" href="/privacy">Read the privacy boundaries <span aria-hidden="true">›</span></Link>
             </div>
           </div>

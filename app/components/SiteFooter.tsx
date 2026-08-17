@@ -8,7 +8,7 @@ const links = [
   ["How it works", "/how-soni-works"],
   ["Research study", "/research"],
   ["Connected platform", "/features"],
-  ["Family portal", "/portal"],
+  ["Login", "/portal/login"],
   ["For senior communities", "/communities"],
   ["Safety & privacy", "/privacy"],
   ["About the project", "/about"],

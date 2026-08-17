@@ -53,8 +53,8 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <Link className="button button--small button--dark" href="/portal" onClick={() => setOpen(false)}>
-            Family portal
+          <Link className="button button--small button--dark" href="/portal/login" onClick={() => setOpen(false)}>
+            Login
           </Link>
         </nav>
       </div>

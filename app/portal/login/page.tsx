@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import PortalNotice from "@/app/components/PortalNotice";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Family portal sign in" };
+export const metadata: Metadata = { title: "Login" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; notice?: string; returnTo?: string }> }) {
   if (await currentUser()) redirect("/portal");
