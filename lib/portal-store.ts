@@ -52,11 +52,13 @@ export async function profileForUser(profileId: string, userId: string, admin: b
       SELECT feature_key, enabled, approved_at::text FROM feature_permissions WHERE profile_id = ${profileId}
     `,
     db()<Record<string, string | boolean | null>[]>`
-      SELECT id, device_name, software_version, status, paired_at::text, last_seen_at::text, last_sync_at::text,
-        (status = 'active' AND last_seen_at > now() - interval '90 seconds') AS online
-      FROM household_devices
-      WHERE profile_id = ${profileId}
-      ORDER BY status = 'active' DESC, paired_at DESC
+      SELECT d.id, d.device_name, d.software_version, d.status, d.paired_at::text, d.last_seen_at::text, d.last_sync_at::text,
+        x.status AS diagnostic_status, x.checks::text AS diagnostic_checks,
+        x.uptime_seconds, x.reported_at::text AS diagnostics_reported_at,
+        (d.status = 'active' AND d.last_seen_at > now() - interval '90 seconds') AS online
+      FROM household_devices d LEFT JOIN device_diagnostics x ON x.device_id=d.id
+      WHERE d.profile_id = ${profileId}
+      ORDER BY d.status = 'active' DESC, d.paired_at DESC
     `,
   ]);
   const permissionMap = new Map(permissions.map((item) => [String(item.feature_key), Boolean(item.enabled)]));
@@ -77,6 +79,12 @@ export async function profileForUser(profileId: string, userId: string, admin: b
       lastSeenAt: device.last_seen_at ? String(device.last_seen_at) : null,
       lastSyncAt: device.last_sync_at ? String(device.last_sync_at) : null,
       online: Boolean(device.online),
+      diagnostics: device.diagnostic_status ? {
+        status: String(device.diagnostic_status),
+        checks: JSON.parse(String(device.diagnostic_checks ?? "{}")),
+        uptimeSeconds: Number(device.uptime_seconds ?? 0),
+        reportedAt: device.diagnostics_reported_at ? String(device.diagnostics_reported_at) : null,
+      } : null,
     })),
   };
 }

@@ -10,7 +10,7 @@ type Props = {
   preferredName: string;
   initialWorkspace: Workspace;
   canManage: boolean;
-  piDevices: Array<{ name: string; online: boolean; lastSyncAt: string | null }>;
+  piDevices: Array<{ name: string; online: boolean; lastSyncAt: string | null; diagnostics: null | { status: string; checks: Record<string, boolean | number>; uptimeSeconds: number; reportedAt: string | null } }>;
 };
 
 type Tab = "today" | "memories" | "medications" | "care" | "displays" | "insights" | "setup";
@@ -140,6 +140,7 @@ export default function HouseholdWorkspace({ profileId, preferredName, initialWo
   }, [workspace.trends]);
   const connected = piDevices.some((device) => device.online);
   const displayOnline = workspace.displays.some((display) => display.online);
+  const diagnostic = piDevices.find((device) => device.diagnostics)?.diagnostics ?? null;
 
   return <section className="household-workspace" aria-label={`${preferredName} household workspace`}>
     <div className="workspace-header">
@@ -193,7 +194,7 @@ export default function HouseholdWorkspace({ profileId, preferredName, initialWo
       <div><span className="workspace-step is-complete">1</span><h3>Profile ready</h3><p>{preferredName}’s household workspace is active.</p></div>
       <div><span className={`workspace-step ${piDevices.length ? "is-complete" : ""}`}>2</span><h3>Connect Soni</h3><p>{piDevices.length ? `${piDevices[0].name} is registered${connected ? " and online" : " but currently offline"}.` : "On Soni, open Connect to website and enter its code in the connection panel below."}</p></div>
       <div><span className={`workspace-step ${workspace.displays.length ? "is-complete" : ""}`}>3</span><h3>Add a household screen</h3><p>Open the display page on a Smart TV browser, tablet, laptop, or streaming device with a browser.</p><button type="button" className="portal-outline-button" onClick={showSetupQr}>Show setup QR</button>{qrCode ? <Image src={qrCode} width={260} height={260} alt="QR code for Soni display setup" unoptimized /> : null}</div>
-      <div><span className={`workspace-step ${connected && displayOnline ? "is-complete" : ""}`}>4</span><h3>Diagnostics</h3><ul><li>Pi cloud sync: <strong>{connected ? "passing" : "waiting"}</strong></li><li>Remote display: <strong>{displayOnline ? "passing" : "waiting"}</strong></li><li>Private media boundary: <strong>enforced</strong></li><li>Raw audio upload: <strong>disabled</strong></li></ul></div>
+      <div><span className={`workspace-step ${diagnostic?.status === "ready" ? "is-complete" : ""}`}>4</span><h3>Diagnostics</h3><ul><li>Pi cloud sync: <strong>{connected ? "passing" : "waiting"}</strong></li><li>Audio input: <strong>{diagnostic ? (diagnostic.checks.audioCapture ? "passing" : "attention") : "waiting"}</strong></li><li>Audio output: <strong>{diagnostic ? (diagnostic.checks.audioPlayback ? "passing" : "attention") : "waiting"}</strong></li><li>Touch display: <strong>{diagnostic ? (diagnostic.checks.displayConnected ? "passing" : "attention") : "waiting"}</strong></li><li>Storage free: <strong>{diagnostic ? `${Number(diagnostic.checks.storageFreeGb).toFixed(1)} GB` : "waiting"}</strong></li><li>Temperature: <strong>{diagnostic ? `${Number(diagnostic.checks.temperatureC).toFixed(1)}°C` : "waiting"}</strong></li><li>Privacy sleep: <strong>{diagnostic ? (diagnostic.checks.privacySleep ? "on" : "off") : "waiting"}</strong></li><li>Remote display: <strong>{displayOnline ? "passing" : "waiting"}</strong></li><li>Private media boundary: <strong>enforced</strong></li><li>Raw audio upload: <strong>disabled</strong></li></ul>{diagnostic?.reportedAt ? <small>Last device report {new Date(diagnostic.reportedAt).toLocaleString()}</small> : null}</div>
     </div> : null}
   </section>;
 }

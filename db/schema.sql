@@ -138,6 +138,14 @@ CREATE TABLE IF NOT EXISTS household_devices (
 CREATE INDEX IF NOT EXISTS household_devices_profile_idx ON household_devices(profile_id, status, paired_at DESC);
 CREATE INDEX IF NOT EXISTS household_devices_last_seen_idx ON household_devices(last_seen_at DESC);
 
+CREATE TABLE IF NOT EXISTS device_diagnostics (
+  device_id uuid PRIMARY KEY REFERENCES household_devices(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'ready' CHECK (status IN ('ready', 'attention')),
+  checks jsonb NOT NULL DEFAULT '{}'::jsonb,
+  uptime_seconds bigint NOT NULL DEFAULT 0 CHECK (uptime_seconds >= 0),
+  reported_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Household content lives in the cloud. Soni receives only bounded text metadata;
 -- private Blob objects are delivered directly to authenticated browser displays.
 CREATE TABLE IF NOT EXISTS family_media (
