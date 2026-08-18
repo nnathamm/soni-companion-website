@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
     const medicationAcknowledged = Math.trunc(boundedNumber(body.medicationAcknowledgedCount, 0, 100) ?? 0);
     const activities = Math.trunc(boundedNumber(body.activityCount, 0, 100) ?? 0);
     const notable = Array.isArray(body.notableChanges) ? body.notableChanges.map(String).map((item) => item.slice(0, 140)).slice(0, 8) : [];
-    await db()`
+    const sql = db();
+    await sql`
       INSERT INTO wellbeing_daily_summaries (
         profile_id, summary_date, conversation_count, average_words_per_turn, vocabulary_variety,
         tone_balance, average_speech_seconds, average_pause_count, speech_density,
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
         ${boundedNumber(body.vocabularyVariety, 0, 1)}, ${boundedNumber(body.toneBalance, -1, 1)},
         ${boundedNumber(body.averageSpeechSeconds, 0, 600)}, ${boundedNumber(body.averagePauseCount, 0, 100)},
         ${boundedNumber(body.speechDensity, 0, 1)}, ${medicationDue}, ${medicationAcknowledged}, ${activities},
-        ${JSON.stringify(notable)}::jsonb, ${device.id}
+        ${sql.json(notable)}, ${device.id}
       ) ON CONFLICT (profile_id, summary_date) DO UPDATE SET
         conversation_count=EXCLUDED.conversation_count, average_words_per_turn=EXCLUDED.average_words_per_turn,
         vocabulary_variety=EXCLUDED.vocabulary_variety, tone_balance=EXCLUDED.tone_balance,

@@ -1,6 +1,8 @@
 import { db } from "./db";
 import { companionFeatures } from "./features";
 
+type AuditJsonValue = null | string | number | boolean | AuditJsonValue[] | { [key: string]: AuditJsonValue | undefined };
+
 export type PortalProfile = {
   id: string;
   profileLabel: string;
@@ -110,7 +112,7 @@ export async function adminOverview() {
   return { counts: counts[0] ?? { users: 0, profiles: 0, memberships: 0 }, users, profiles };
 }
 
-export async function writeAudit(actorId: string | null, action: string, profileId: string | null = null, detail: Record<string, unknown> = {}) {
-  const serializedDetail = JSON.stringify(detail);
-  await db()`INSERT INTO audit_events (actor_id, profile_id, action, detail) VALUES (${actorId}, ${profileId}, ${action}, ${serializedDetail}::jsonb)`;
+export async function writeAudit(actorId: string | null, action: string, profileId: string | null = null, detail: Record<string, AuditJsonValue | undefined> = {}) {
+  const sql = db();
+  await sql`INSERT INTO audit_events (actor_id, profile_id, action, detail) VALUES (${actorId}, ${profileId}, ${action}, ${sql.json(detail)})`;
 }

@@ -146,6 +146,11 @@ CREATE TABLE IF NOT EXISTS device_diagnostics (
   reported_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Normalize values written by earlier builds that double-encoded JSON.
+UPDATE device_diagnostics
+SET checks = (checks #>> '{}')::jsonb
+WHERE jsonb_typeof(checks) = 'string';
+
 -- Household content lives in the cloud. Soni receives only bounded text metadata;
 -- private Blob objects are delivered directly to authenticated browser displays.
 CREATE TABLE IF NOT EXISTS family_media (
@@ -233,6 +238,14 @@ CREATE TABLE IF NOT EXISTS wellbeing_daily_summaries (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (profile_id, summary_date)
 );
+
+UPDATE wellbeing_daily_summaries
+SET notable_changes = (notable_changes #>> '{}')::jsonb
+WHERE jsonb_typeof(notable_changes) = 'string';
+
+UPDATE audit_events
+SET detail = (detail #>> '{}')::jsonb
+WHERE jsonb_typeof(detail) = 'string';
 
 CREATE INDEX IF NOT EXISTS wellbeing_daily_summaries_profile_idx ON wellbeing_daily_summaries(profile_id, summary_date DESC);
 

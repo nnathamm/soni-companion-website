@@ -152,7 +152,7 @@ try {
         ) VALUES (${profileId}, ${date}, ${conversations}, ${words}, ${0.63 + Math.sin(progress / 3) * 0.02},
           ${tone}, ${18 + Math.sin(progress / 2) * 2}, ${pauses}, ${0.74 - pauses * 0.02}, 2,
           ${offset % 5 === 0 ? 1 : 2}, ${1 + (progress % 2)},
-          ${JSON.stringify(profile.trend === "review" && offset < 4 ? [{ metric: "pause_count", direction: "higher", nonDiagnostic: true }] : [])}::jsonb)
+          ${sql.json(profile.trend === "review" && offset < 4 ? [{ metric: "pause_count", direction: "higher", nonDiagnostic: true }] : [])})
         ON CONFLICT (profile_id, summary_date) DO UPDATE SET
           conversation_count=EXCLUDED.conversation_count, average_words_per_turn=EXCLUDED.average_words_per_turn,
           vocabulary_variety=EXCLUDED.vocabulary_variety, tone_balance=EXCLUDED.tone_balance,
@@ -176,7 +176,7 @@ try {
     if (!existing.length) {
       await sql`
         INSERT INTO audit_events (actor_id, profile_id, action, detail)
-        VALUES (${adminId}, ${profileId}, 'demo_profile.seeded', ${JSON.stringify({ synthetic: true, databaseBacked: true })}::jsonb)
+        VALUES (${adminId}, ${profileId}, 'demo_profile.seeded', ${sql.json({ synthetic: true, databaseBacked: true })})
       `;
     }
   }

@@ -31,9 +31,10 @@ export async function POST(request: NextRequest) {
       checks.audioCapture && checks.audioPlayback && checks.displayConnected
       && Number(checks.storageFreeGb) >= 1 && Number(checks.temperatureC) < 85,
     );
-    await db()`
+    const sql = db();
+    await sql`
       INSERT INTO device_diagnostics (device_id, status, checks, uptime_seconds)
-      VALUES (${device.id}, ${ready ? "ready" : "attention"}, ${JSON.stringify(checks)}::jsonb, ${uptime})
+      VALUES (${device.id}, ${ready ? "ready" : "attention"}, ${sql.json(checks)}, ${uptime})
       ON CONFLICT (device_id) DO UPDATE SET status=EXCLUDED.status, checks=EXCLUDED.checks,
         uptime_seconds=EXCLUDED.uptime_seconds, reported_at=now()
     `;
