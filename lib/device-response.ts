@@ -9,5 +9,8 @@ export function deviceError(error: unknown) {
     portal_not_configured: 503,
   };
   const publicCode = code in statuses ? code : "request_failed";
-  return Response.json({ ok: false, error: publicCode }, { status: statuses[publicCode] ?? 500 });
+  return Response.json(
+    { ok: false, error: publicCode },
+    { status: statuses[publicCode] ?? 500, headers: { "Cache-Control": "no-store" } },
+  );
 }
