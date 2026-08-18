@@ -51,9 +51,19 @@ export async function GET(request: NextRequest) {
       },
       features: Object.fromEntries(permissions.map((item) => [item.feature_key, item.enabled])),
       sync: {
+        protocolVersion: 2,
         rawAudio: false,
         transcripts: false,
         localPrivacySleepOverridesCloud: true,
+        mediaPolicy: {
+          version: 1,
+          delivery: "paired_display_direct",
+          metadataOnly: true,
+          piReceivesFiles: false,
+          piReceivesUrls: false,
+          piCachesMedia: false,
+          piStoresMedia: false,
+        },
       },
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
