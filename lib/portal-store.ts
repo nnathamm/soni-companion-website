@@ -47,9 +47,18 @@ export async function profileForUser(profileId: string, userId: string, admin: b
       `;
   const row = rows[0];
   if (!row) return null;
-  const permissions = await db()<Record<string, string | boolean | null>[]>`
-    SELECT feature_key, enabled, approved_at::text FROM feature_permissions WHERE profile_id = ${profileId}
-  `;
+  const [permissions, devices] = await Promise.all([
+    db()<Record<string, string | boolean | null>[]>`
+      SELECT feature_key, enabled, approved_at::text FROM feature_permissions WHERE profile_id = ${profileId}
+    `,
+    db()<Record<string, string | boolean | null>[]>`
+      SELECT id, device_name, software_version, status, paired_at::text, last_seen_at::text, last_sync_at::text,
+        (status = 'active' AND last_seen_at > now() - interval '90 seconds') AS online
+      FROM household_devices
+      WHERE profile_id = ${profileId}
+      ORDER BY status = 'active' DESC, paired_at DESC
+    `,
+  ]);
   const permissionMap = new Map(permissions.map((item) => [String(item.feature_key), Boolean(item.enabled)]));
   return {
     id: String(row.id),
@@ -59,6 +68,16 @@ export async function profileForUser(profileId: string, userId: string, admin: b
     privacyMode: String(row.privacy_mode),
     relationship: row.relationship ? String(row.relationship) : admin ? "administrator" : "member",
     features: companionFeatures.map((feature) => ({ ...feature, enabled: permissionMap.get(feature.key) ?? false })),
+    devices: devices.map((device) => ({
+      id: String(device.id),
+      name: String(device.device_name),
+      softwareVersion: String(device.software_version ?? ""),
+      status: String(device.status),
+      pairedAt: String(device.paired_at),
+      lastSeenAt: device.last_seen_at ? String(device.last_seen_at) : null,
+      lastSyncAt: device.last_sync_at ? String(device.last_sync_at) : null,
+      online: Boolean(device.online),
+    })),
   };
 }
 

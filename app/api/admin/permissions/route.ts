@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
         approved_at = EXCLUDED.approved_at,
         updated_at = now()
     `;
+    await db()`UPDATE senior_profiles SET updated_at = now() WHERE id = ${profileId}`;
     await writeAudit(admin.id, enabled ? "permission.enabled" : "permission.disabled", profileId, { featureKey });
     return NextResponse.redirect(new URL(`/portal/profile/${profileId}?notice=permission_updated`, request.url), 303);
   } catch (error) {

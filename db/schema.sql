@@ -93,3 +93,47 @@ CREATE TABLE IF NOT EXISTS audit_events (
 CREATE INDEX IF NOT EXISTS memberships_user_id_idx ON profile_memberships(user_id);
 CREATE INDEX IF NOT EXISTS feature_permissions_profile_id_idx ON feature_permissions(profile_id);
 CREATE INDEX IF NOT EXISTS audit_events_created_at_idx ON audit_events(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS device_pairing_limits (
+  key_hash text PRIMARY KEY,
+  attempts integer NOT NULL DEFAULT 0,
+  window_started_at timestamptz NOT NULL DEFAULT now(),
+  blocked_until timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS device_pairing_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pairing_code text NOT NULL UNIQUE CHECK (pairing_code ~ '^[0-9]{6}$'),
+  device_id text NOT NULL CHECK (device_id ~ '^[a-f0-9]{32}$'),
+  token_hash text NOT NULL CHECK (token_hash ~ '^[a-f0-9]{64}$'),
+  device_name text NOT NULL,
+  software_version text NOT NULL DEFAULT '',
+  expires_at timestamptz NOT NULL,
+  approved_profile_id uuid REFERENCES senior_profiles(id) ON DELETE CASCADE,
+  approved_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  approved_at timestamptz,
+  claimed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS device_pairing_requests_device_idx ON device_pairing_requests(device_id, expires_at DESC);
+CREATE INDEX IF NOT EXISTS device_pairing_requests_expires_idx ON device_pairing_requests(expires_at);
+
+CREATE TABLE IF NOT EXISTS household_devices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL REFERENCES senior_profiles(id) ON DELETE CASCADE,
+  device_id text NOT NULL UNIQUE CHECK (device_id ~ '^[a-f0-9]{32}$'),
+  token_hash text NOT NULL UNIQUE CHECK (token_hash ~ '^[a-f0-9]{64}$'),
+  device_name text NOT NULL,
+  software_version text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'revoked')),
+  paired_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  paired_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at timestamptz,
+  last_sync_at timestamptz,
+  revoked_at timestamptz,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS household_devices_profile_idx ON household_devices(profile_id, status, paired_at DESC);
+CREATE INDEX IF NOT EXISTS household_devices_last_seen_idx ON household_devices(last_seen_at DESC);
