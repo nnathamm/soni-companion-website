@@ -18,6 +18,7 @@ const navigation = [
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  if (pathname === "/display") return null;
 
   return (
     <header className="site-header site-header--v4">

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import SoniMark from "./SoniMark";
 import PortalEntryLink from "./PortalEntryLink";
 
@@ -17,6 +20,8 @@ const links = [
 ];
 
 export default function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname === "/display") return null;
   return (
     <footer className="site-footer">
       <div className="site-footer__top shell">

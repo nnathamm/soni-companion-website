@@ -1,6 +1,7 @@
 import { authenticateDevice } from "@/lib/device-auth";
 import { db } from "@/lib/db";
 import { deviceError } from "@/lib/device-response";
+import { cloudContentForProfile } from "@/lib/household-content";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     const device = await authenticateDevice(request);
     const sql = db();
-    const [profiles, permissions] = await Promise.all([
+    const [profiles, permissions, content] = await Promise.all([
       sql<{
         id: string;
         profile_label: string;
@@ -29,9 +30,15 @@ export async function GET(request: NextRequest) {
       sql<{ feature_key: string; enabled: boolean }[]>`
         SELECT feature_key, enabled FROM feature_permissions WHERE profile_id = ${device.profileId}
       `,
+      cloudContentForProfile(device.profileId),
     ]);
     const profile = profiles[0];
     if (!profile) throw new Error("device_unauthorized");
+    await sql`
+      UPDATE remote_display_state SET mode='face', face_state='idle', title='', caption='',
+        user_text='', assistant_text='', media_id=NULL, notification_id=NULL, expires_at=NULL, updated_at=now()
+      WHERE profile_id=${device.profileId} AND expires_at IS NOT NULL AND expires_at <= now()
+    `;
     await sql`
       UPDATE household_devices SET
         last_seen_at = now(), last_sync_at = now(), updated_at = now()
@@ -40,7 +47,7 @@ export async function GET(request: NextRequest) {
     `;
     return Response.json({
       ok: true,
-      configVersion: profile.config_version,
+      configVersion: content.version || profile.config_version,
       profile: {
         id: profile.id,
         label: profile.profile_label,
@@ -50,6 +57,7 @@ export async function GET(request: NextRequest) {
         localProfileCode: `WEB-${profile.id.replaceAll("-", "").slice(0, 12).toUpperCase()}`,
       },
       features: Object.fromEntries(permissions.map((item) => [item.feature_key, item.enabled])),
+      content,
       sync: {
         protocolVersion: 2,
         rawAudio: false,

@@ -6,6 +6,8 @@ import { demoProfileForLabel } from "@/lib/demo-profiles";
 import DemoProfileExperience from "@/app/components/DemoProfileExperience";
 import PortalBar from "@/app/components/PortalBar";
 import PortalNotice from "@/app/components/PortalNotice";
+import HouseholdWorkspace from "@/app/components/HouseholdWorkspace";
+import { householdWorkspace } from "@/lib/household-content";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Shared profile" };
@@ -17,10 +19,12 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   if (!profile) notFound();
   const demoProfile = demoProfileForLabel(profile.profileLabel);
   const query = await searchParams;
+  const workspace = await householdWorkspace(profile.id);
   return <section className="portal-shell shell shell--wide">
     <PortalBar user={user} /><PortalNotice error={query.error} notice={query.notice} />
     <div className="profile-hero"><div><p className="eyebrow">{demoProfile ? "Synthetic showcase profile" : "Senior-controlled profile"}</p><h1>{demoProfile?.preferredName ?? profile.profileLabel}</h1><p>{demoProfile ? `${demoProfile.location} · ${demoProfile.summary}` : profile.preferredName ? `Preferred name: ${profile.preferredName}` : "This profile uses a pseudonymous label."}</p></div><div className="profile-hero__facts"><span><strong>{profile.status}</strong>Profile status</span><span><strong>{profile.privacyMode}</strong>Privacy mode</span><span><strong>{profile.relationship}</strong>Your access</span></div></div>
     {demoProfile && <DemoProfileExperience profile={demoProfile} enabledFeatures={profile.features.filter((feature) => feature.enabled).map((feature) => feature.key)} />}
+    <HouseholdWorkspace profileId={profile.id} preferredName={profile.preferredName ?? profile.profileLabel} initialWorkspace={workspace} canManage={user.role === "admin" || ["senior", "caregiver", "coordinator", "family"].includes(profile.relationship)} piDevices={profile.devices.map((device) => ({ name: device.name, online: device.online, lastSyncAt: device.lastSyncAt }))} />
     <div className="profile-boundary"><div><p className="eyebrow">Privacy boundary</p><h2>Features are separate—not a single blanket permission.</h2></div><p>Turning one on does not authorize another. Physical privacy sleep on Soni still overrides microphone-dependent features.</p></div>
     <section className="portal-panel portal-panel--wide soni-device-panel">
       <div className="portal-panel__heading"><div><p className="eyebrow">Internet-connected household</p><h2>Connect this profile to Soni</h2></div><span className="portal-status">outbound encrypted sync</span></div>
